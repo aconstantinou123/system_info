@@ -24,6 +24,9 @@ impl CPUUsage {
     }
 
     pub fn add_cpu_data(&mut self) -> io::Result<()>{
+        if self.usage.len() >= 100 {
+            self.usage.clear();
+        }
         let new_cpu_data = self.get_cpu_info()?;
         let time_to_add = match self.usage.last() {
              Some(x) =>  x.0 + 1.0,
