@@ -4,7 +4,7 @@ use std::str;
 use std::io;
 
 pub struct CPUUsage {
-    pub usage: Vec<(f64, f64)>,
+    usage: Vec<(f64, f64)>,
     prev_time: f64,
     prev_usage: f64,
 }

@@ -2,7 +2,6 @@ use system_info::CPUUsage;
 use std::process;
 use std::io;
 use std::{thread, time};
-use termion::event::Key;
 use termion::input::MouseTerminal;
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
@@ -53,7 +52,7 @@ fn main() -> Result<(), io::Error> {
                 )
                 .datasets(&[
                     Dataset::default()
-                        .name("data2")
+                        .name("CPU %")
                         .marker(Marker::Dot)
                         .style(Style::default().fg(Color::Cyan))
                         .data(&cpu_usage.get_usage()[..]),
