@@ -26,42 +26,40 @@ fn main() -> Result<(), io::Error> {
             eprintln!("Application error: {}", e);
             process::exit(1);
         }
-     terminal.draw(|mut f| {
-        let size = f.size();
-        Chart::default()
-        .block(
-            Block::default()
-                    .title("Chart")
-                    .title_style(Style::default().fg(Color::Cyan).modifier(Modifier::BOLD))
-                    .borders(Borders::ALL),
-            )
-            .x_axis(
-                Axis::default()
-                    .title("X Axis")
-                    .style(Style::default().fg(Color::Gray))
-                    .labels_style(Style::default().modifier(Modifier::ITALIC))
-                    .bounds([0.0, 100.0])
-                    .labels(&["0", "25", "50", "75", "100"]),
-            )
-            .y_axis(
-                Axis::default()
-                    .title("Y Axis")
-                    .style(Style::default().fg(Color::Gray))
-                    .labels_style(Style::default().modifier(Modifier::ITALIC))
-                    .bounds([0.0, 10.0])
-                    .labels(&["0", "2", "4", "6", "8", "10"]),
-            )
-            .datasets(&[
-                Dataset::default()
-                    .name("data2")
-                    .marker(Marker::Dot)
-                    .style(Style::default().fg(Color::Cyan))
-                    .data(&cpu_usage.get_usage()[..]),
-            ])
-            .render(&mut f, size);
-        })?;
-        //println!("usage: {:?}", cpu_usage.get_usage();
+         terminal.draw(|mut f| {
+            let size = f.size();
+            Chart::default()
+            .block(
+                Block::default()
+                        .title("Chart")
+                        .title_style(Style::default().fg(Color::Cyan).modifier(Modifier::BOLD))
+                        .borders(Borders::ALL),
+                )
+                .x_axis(
+                    Axis::default()
+                        .title("X Axis")
+                        .style(Style::default().fg(Color::Gray))
+                        .labels_style(Style::default().modifier(Modifier::ITALIC))
+                        .bounds([0.0, 100.0])
+                        .labels(&["0", "25", "50", "75", "100"]),
+                )
+                .y_axis(
+                    Axis::default()
+                        .title("Y Axis")
+                        .style(Style::default().fg(Color::Gray))
+                        .labels_style(Style::default().modifier(Modifier::ITALIC))
+                        .bounds([0.0, 100.0])
+                        .labels(&["0", "20", "40", "60", "80", "100"]),
+                )
+                .datasets(&[
+                    Dataset::default()
+                        .name("data2")
+                        .marker(Marker::Dot)
+                        .style(Style::default().fg(Color::Cyan))
+                        .data(&cpu_usage.get_usage()[..]),
+                ])
+                .render(&mut f, size);
+            })?;
         thread::sleep(second);
-        }
-    Ok(())
+    }
 }
