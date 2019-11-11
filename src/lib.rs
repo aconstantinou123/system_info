@@ -24,13 +24,13 @@ impl CPUUsage {
     }
 
     pub fn add_cpu_data(&mut self) -> io::Result<()>{
-        if self.usage.len() >= 100 {
+        if self.usage.len() >= 400 {
             self.usage.clear();
         }
         let new_cpu_data = self.get_cpu_info()?;
         let time_to_add = match self.usage.last() {
-             Some(x) =>  x.0 + 1.0,
-             None => 1.0
+             Some(x) =>  x.0 + 0.25,
+             None => 0.25
         };
         self.usage.push((time_to_add, new_cpu_data));
         Ok(())

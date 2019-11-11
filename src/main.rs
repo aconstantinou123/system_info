@@ -1,7 +1,9 @@
+mod util;
+
 use system_info::CPUUsage;
 use std::process;
 use std::io;
-use std::{thread, time};
+use termion::event::Key;
 use termion::input::MouseTerminal;
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
@@ -10,10 +12,12 @@ use tui::style::{Color, Modifier, Style};
 use tui::widgets::{Axis, Block, Borders, Chart, Dataset, Marker, Widget};
 use tui::Terminal;
 
+use util::event::{Event, Events};
 
-fn main() -> Result<(), io::Error> {
+
+fn main() -> Result<(), failure::Error> {
+    let events = Events::new();
     let mut cpu_usage = CPUUsage::new();
-    let second = time::Duration::from_millis(1000);
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = MouseTerminal::from(stdout);
     let stdout = AlternateScreen::from(stdout);
@@ -21,11 +25,7 @@ fn main() -> Result<(), io::Error> {
     let mut terminal = Terminal::new(backend)?;
     terminal.hide_cursor()?;
     loop {
-        if let Err(e) = cpu_usage.add_cpu_data() {
-            eprintln!("Application error: {}", e);
-            process::exit(1);
-        }
-         terminal.draw(|mut f| {
+        terminal.draw(|mut f| {
             let size = f.size();
             Chart::default()
             .block(
@@ -59,6 +59,20 @@ fn main() -> Result<(), io::Error> {
                 ])
                 .render(&mut f, size);
             })?;
-        thread::sleep(second);
+        match events.next()? {
+            Event::Input(input) => {
+                if input == Key::Char('q') {
+                    println!("quit");
+                    break;
+                }
+            }
+            Event::Tick => {
+                if let Err(e) = cpu_usage.add_cpu_data() {
+                    eprintln!("Application error: {}", e);
+                    process::exit(1);
+                }
+            }
+        }
     }
+    Ok(())
 }
