@@ -39,8 +39,8 @@ fn main() -> Result<(), failure::Error> {
                         .title("X Axis")
                         .style(Style::default().fg(Color::Gray))
                         .labels_style(Style::default().modifier(Modifier::ITALIC))
-                        .bounds([0.0, 100.0])
-                        .labels(&["0", "25", "50", "75", "100"]),
+                        .bounds([0.0, 300.0])
+                        .labels(&["0", "50", "100", "150", "200", "250", "300"]),
                 )
                 .y_axis(
                     Axis::default()
