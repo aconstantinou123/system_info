@@ -2,6 +2,7 @@ use std::{ fs };
 use std::path::Path;
 use std::str;
 use std::io;
+use regex::Regex;
 
 pub struct CPUUsage {
     usage: Vec<(f64, f64)>,
@@ -145,4 +146,45 @@ impl MemInfo {
 
 }
 
+pub struct ProcessInfo {
+    process_cpu_usage: Vec<(String, f64)> 
 
+}
+
+impl ProcessInfo {
+    
+    pub fn new() -> ProcessInfo {
+        let process_cpu_usage = vec![];
+        ProcessInfo {
+            process_cpu_usage
+        }
+    }
+
+    pub fn read_dirs(&self, proc_path: &Path) -> Result<(), io::Error> {
+        println!("{:?}", proc_path);
+        let mut dirs = vec![];
+        let mut path;
+        let digits_only = Regex::new("^[0-9]*$").unwrap();
+        for entry in fs::read_dir(proc_path)? {
+            let entry = entry?;
+            path = entry.path();
+            if path.is_dir() && digits_only.is_match(path.file_name().unwrap().to_str().unwrap()) {
+                dirs.push(path);
+            }
+            else if path.is_file() && path.file_name().unwrap() == "stat" {
+                // println!("{:?}", path.file_name().unwrap());
+                let contents = match fs::read_to_string(&path) {
+                    Ok(f) => f,
+                    Err(e) => {
+                        e.to_string()
+                    },
+                };
+                println!("{}", contents);
+            }
+        }
+        for dir in dirs.iter() {
+            self.read_dirs(&dir);
+        }
+        Ok(())
+    }
+}
