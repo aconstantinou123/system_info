@@ -4,6 +4,7 @@ use std::str;
 use std::io;
 use regex::Regex;
 
+#[derive(Debug)]
 pub struct CPUUsage {
     usage: Vec<(f64, f64)>,
     prev_time: f64,
@@ -81,6 +82,7 @@ impl CPUUsage {
     }
 }
 
+#[derive(Debug)]
 pub struct MemInfo {
     usage: Vec<(f64, f64)>,
 }
@@ -146,21 +148,55 @@ impl MemInfo {
 
 }
 
+#[derive(Debug)]
+pub struct Process {
+    pid: i32,
+    process_name: String,
+    state: String,
+    utime: f64,
+    stime: f64,
+    total_time: f64,
+    mem_percent: f64,
+}
+
+impl Process {
+
+    pub fn new(pid: i32, state: String,  process_name: String, utime: f64, stime: f64) -> Process {
+        let total_time = utime + stime;
+        let mem_percent = 0.0;
+        Process {
+            pid,
+            process_name,
+            state,
+            utime,
+            stime,
+            total_time,
+            mem_percent,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct ProcessInfo {
-    process_cpu_usage: Vec<(String, f64)> 
+    processes: Vec<Process> 
 
 }
+
 
 impl ProcessInfo {
     
     pub fn new() -> ProcessInfo {
-        let process_cpu_usage = vec![];
+        let processes = vec![];
         ProcessInfo {
-            process_cpu_usage
+            processes,
         }
     }
 
-    pub fn read_dirs(&self, proc_path: &Path) -> Result<(), io::Error> {
+    pub fn get_processes(&self) -> &Vec<Process> {
+        self.processes.as_ref()
+    }
+
+    pub fn read_dirs(&mut self, proc_path: &Path) -> Result<(), io::Error> {
         println!("{:?}", proc_path);
         let mut dirs = vec![];
         let mut path;
@@ -171,20 +207,41 @@ impl ProcessInfo {
             if path.is_dir() && digits_only.is_match(path.file_name().unwrap().to_str().unwrap()) {
                 dirs.push(path);
             }
-            else if path.is_file() && path.file_name().unwrap() == "stat" {
-                // println!("{:?}", path.file_name().unwrap());
+            else if path.is_file() && path.file_name().unwrap() == "stat" 
+                && proc_path.to_str().unwrap() != "/proc/" {
                 let contents = match fs::read_to_string(&path) {
                     Ok(f) => f,
                     Err(e) => {
                         e.to_string()
                     },
                 };
-                println!("{}", contents);
+                self.get_mem_data(&contents);
             }
         }
         for dir in dirs.iter() {
             self.read_dirs(&dir);
         }
+        Ok(())
+    }
+
+    pub fn get_mem_data(&mut self, contents: &str) -> Result<(), io::Error> {
+        let contents_array: Vec<&str> = contents
+            .split_whitespace()
+            .collect();
+        let pid: i32 = contents_array[0].parse().unwrap();
+        let process_name: String = contents_array[1].replace("(", "").replace(")", "");
+        let state: String = contents_array[2].replace("(", "").replace(")", "");
+        let utime: f64 = contents_array[12].parse().unwrap();
+        let stime: f64 = contents_array[13].parse().unwrap();
+        let total_time = utime + stime;
+        let mem_data = Process::new(
+            pid,
+            process_name,
+            state,
+            utime,
+            stime,
+        );
+        self.processes.push(mem_data);
         Ok(())
     }
 }

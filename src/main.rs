@@ -17,9 +17,10 @@ use util::event::{Event, Events};
 
 
 fn main() -> Result<(), failure::Error> {
-    let process_info = ProcessInfo::new();
+    let mut process_info = ProcessInfo::new();
     let proc_path = Path::new("/proc/");
     process_info.read_dirs(&proc_path);
+    println!("{:?}", process_info.get_processes());
     let events = Events::new();
     let mut cpu_usage = CPUUsage::new();
     let mut mem_info = MemInfo::new();
