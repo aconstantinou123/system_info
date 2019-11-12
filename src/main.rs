@@ -1,6 +1,6 @@
 mod util;
 
-use system_info::CPUUsage;
+use system_info::{CPUUsage, MemInfo};
 use std::process;
 use std::io;
 use termion::event::Key;
@@ -18,6 +18,7 @@ use util::event::{Event, Events};
 fn main() -> Result<(), failure::Error> {
     let events = Events::new();
     let mut cpu_usage = CPUUsage::new();
+    let mut mem_info = MemInfo::new();
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = MouseTerminal::from(stdout);
     let stdout = AlternateScreen::from(stdout);
@@ -56,6 +57,12 @@ fn main() -> Result<(), failure::Error> {
                         .marker(Marker::Dot)
                         .style(Style::default().fg(Color::Cyan))
                         .data(&cpu_usage.get_usage()[..]),
+                    Dataset::default()
+                        .name("Memory %")
+                        .marker(Marker::Dot)
+                        .style(Style::default().fg(Color::Magenta))
+                        .data(&mem_info.get_usage()[..]),
+
                 ])
                 .render(&mut f, size);
             })?;
@@ -71,6 +78,11 @@ fn main() -> Result<(), failure::Error> {
                     eprintln!("Application error: {}", e);
                     process::exit(1);
                 }
+                if let Err(e) = mem_info.add_mem_data() {
+                    eprintln!("Application error: {}", e);
+                    process::exit(1);
+                }
+
             }
         }
     }

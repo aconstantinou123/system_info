@@ -23,16 +23,21 @@ impl CPUUsage {
         }
     }
 
-    pub fn add_cpu_data(&mut self) -> io::Result<()>{
+    pub fn clear_usage(&mut self) {
         if self.usage.len() >= 300 {
             self.usage.clear();
-        }
+        } 
+    }
+
+    pub fn add_cpu_data(&mut self) -> io::Result<()>{
+        self.clear_usage();
         let new_cpu_data = self.get_cpu_info()?;
         let time_to_add = match self.usage.last() {
              Some(x) =>  x.0 + 1.0,
              None => 1.0
         };
         self.usage.push((time_to_add, new_cpu_data));
+        // println!("{:?}", self.usage);
         Ok(())
     }
 
@@ -73,6 +78,71 @@ impl CPUUsage {
         self.prev_time = current_time;
         current_cpu
     }
+}
+
+pub struct MemInfo {
+    usage: Vec<(f64, f64)>,
+}
+
+impl MemInfo {
+
+    pub fn new() -> MemInfo {
+        let usage = vec![];
+        MemInfo {
+            usage
+        }
+    }
+
+    pub fn clear_usage(&mut self) {
+        if self.usage.len() >= 300 {
+            self.usage.clear();
+        } 
+    }
+
+    pub fn get_usage(&self) -> &Vec<(f64, f64)> {
+        self.usage.as_ref()
+    }
+
+    pub fn extract_kb_info(&self, line: Vec<&str>) -> f64 {
+        let line_vec: Vec<&str> = line[0]
+            .split_whitespace()
+            .collect();
+        let kb: f64 = line_vec[1]
+            .parse()
+            .unwrap();
+        kb
+    }
+
+    pub fn get_mem_info(&mut self) -> Result<f64, io::Error> {
+        let mem_file_path = Path::new("/proc/meminfo");
+        let mem_file = fs::read_to_string(mem_file_path)?;
+        let mem_total_line: Vec<&str> = mem_file.lines()
+            .filter(|line| line.contains("MemTotal"))
+            .collect();
+       let mem_free_line: Vec<&str> = mem_file.lines()
+            .filter(|line| line.contains("MemFree"))
+            .collect();
+        let mem_total = self.extract_kb_info(mem_total_line);
+        let mem_free = self.extract_kb_info(mem_free_line);
+        let percentage_used = mem_free / mem_total * 100.0;
+        Ok(percentage_used)
+
+    }
+
+    pub fn add_mem_data(&mut self) -> io::Result<()>{
+        self.clear_usage();
+        let new_mem_data = self.get_mem_info()?;
+        let time_to_add = match self.usage.last() {
+             Some(x) =>  x.0 + 1.0,
+             None => 1.0
+        };
+        self.usage.push((time_to_add, new_mem_data));
+        // println!("{:?}", self.usage);
+        Ok(())
+    }
+
+
+
 }
 
 
