@@ -12,6 +12,7 @@ use tui::style::{Color, Modifier, Style};
 use tui::widgets::{Axis, Block, Borders, Chart, Dataset, Marker, Widget};
 use tui::Terminal;
 use std::path::Path;
+use std::{thread, time};
 
 use util::event::{Event, Events};
 
@@ -19,8 +20,13 @@ use util::event::{Event, Events};
 fn main() -> Result<(), failure::Error> {
     let mut process_info = ProcessInfo::new();
     let proc_path = Path::new("/proc/");
-    process_info.read_dirs(&proc_path);
-    println!("{:?}", process_info.get_processes());
+    process_info.update(&proc_path);
+    let second = time::Duration::from_millis(1000);
+    thread::sleep(second);
+    process_info.update(&proc_path);
+
+
+    //println!("{:?}", process_info.get_processes());
     let events = Events::new();
     let mut cpu_usage = CPUUsage::new();
     let mut mem_info = MemInfo::new();
@@ -29,8 +35,8 @@ fn main() -> Result<(), failure::Error> {
     let stdout = AlternateScreen::from(stdout);
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-    terminal.hide_cursor()?;
-    loop {
+//    terminal.hide_cursor()?;
+//    loop {
 //        terminal.draw(|mut f| {
 //            let size = f.size();
 //            Chart::default()
@@ -71,25 +77,25 @@ fn main() -> Result<(), failure::Error> {
 //                ])
 //                .render(&mut f, size);
 //            })?;
-        match events.next()? {
-            Event::Input(input) => {
-                if input == Key::Char('q') {
-                    println!("quit");
-                    break;
-                }
-            }
-            Event::Tick => {
-                if let Err(e) = cpu_usage.add_cpu_data() {
-                    eprintln!("Application error: {}", e);
-                    process::exit(1);
-                }
-                if let Err(e) = mem_info.add_mem_data() {
-                    eprintln!("Application error: {}", e);
-                    process::exit(1);
-                }
-
-            }
-        }
-    }
+//        match events.next()? {
+//           Event::Input(input) => {
+//                if input == Key::Char('q') {
+//                    println!("quit");
+//                   break;
+//                }
+//            }
+//            Event::Tick => {
+//                if let Err(e) = cpu_usage.add_cpu_data() {
+//                    eprintln!("Application error: {}", e);
+//                    process::exit(1);
+//                }
+//                if let Err(e) = mem_info.add_mem_data() {
+//                    eprintln!("Application error: {}", e);
+//                    process::exit(1);
+//                }
+//
+//            }
+//        }
+//    }
     Ok(())
 }

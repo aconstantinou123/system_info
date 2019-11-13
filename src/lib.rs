@@ -178,8 +178,8 @@ impl Process {
 
 #[derive(Debug)]
 pub struct ProcessInfo {
-    processes: Vec<Process> 
-
+    processes: Vec<Process>, 
+    cpu_time_diff: f64,
 }
 
 
@@ -187,13 +187,21 @@ impl ProcessInfo {
     
     pub fn new() -> ProcessInfo {
         let processes = vec![];
+        let cpu_time_diff = 0.0;
         ProcessInfo {
             processes,
+            cpu_time_diff,
         }
     }
 
     pub fn get_processes(&self) -> &Vec<Process> {
         self.processes.as_ref()
+    }
+
+    pub fn update(&mut self, proc_path: &Path) -> Result<(), io::Error>{
+        self.update_cpu_diff();
+        self.read_dirs(&proc_path);
+        Ok(())
     }
 
     pub fn read_dirs(&mut self, proc_path: &Path) -> Result<(), io::Error> {
@@ -241,7 +249,58 @@ impl ProcessInfo {
             utime,
             stime,
         );
-        self.processes.push(mem_data);
+        self.add_to_processes(mem_data);
         Ok(())
     }
+
+    pub fn update_cpu_diff(&mut self) -> Result<(), io::Error> {
+        let mut cpu_time_diff = 0.0;
+        let current_cpu_time = self.get_cpu_info()?;
+        if self.cpu_time_diff == 0.0 {
+            self.cpu_time_diff = current_cpu_time;
+        } else {
+            cpu_time_diff = current_cpu_time - self.cpu_time_diff;
+        }
+        println!("{}", cpu_time_diff);
+        Ok(())
+    }
+
+
+    pub fn add_to_processes(&mut self, process: Process) -> Result<(), io::Error> {
+        let found_process = self.processes.iter()
+            .find(|p| p.pid == process.pid);
+        match found_process {
+            Some(p) => println!("{:?}", p),
+            None => self.processes.push(process),
+        };
+        Ok(())
+    }
+
+    pub fn get_cpu_info(&mut self) -> Result<f64, io::Error>{
+        let mut cpu_time = 0.0;
+        let cpu_vec = create_cpu_vector()?;
+        for val in cpu_vec.iter() {
+            cpu_time += val;
+        } 
+        Ok((cpu_time))
+    }
+
+}
+
+pub fn create_cpu_vector() -> Result<Vec<f64>, io::Error> {
+    let cpu_file_path = Path::new("/proc/stat");
+    let cpu_file = fs::read_to_string(cpu_file_path)?;
+    let cpu_info = match cpu_file.lines().next() {
+        Some(i) => i,
+        None => "File Error",
+     };
+    let mut cpu_vec: Vec<&str> = cpu_info
+        .split(' ')
+        .collect();
+
+    let cpu_values: Vec<f64> = cpu_vec
+        .drain(2..)
+        .map(| x | x.parse().unwrap())
+        .collect();
+    Ok(cpu_values)
 }
