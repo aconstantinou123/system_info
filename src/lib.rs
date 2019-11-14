@@ -180,6 +180,7 @@ impl Process {
 pub struct ProcessInfo {
     processes: Vec<Process>, 
     cpu_time_diff: f64,
+    current_cpu_time: f64,
 }
 
 
@@ -188,9 +189,11 @@ impl ProcessInfo {
     pub fn new() -> ProcessInfo {
         let processes = vec![];
         let cpu_time_diff = 0.0;
+        let current_cpu_time = 0.0;
         ProcessInfo {
             processes,
             cpu_time_diff,
+            current_cpu_time,
         }
     }
 
@@ -199,13 +202,13 @@ impl ProcessInfo {
     }
 
     pub fn update(&mut self, proc_path: &Path) -> Result<(), io::Error>{
-        self.update_cpu_diff();
-        self.read_dirs(&proc_path);
+        self.update_cpu_diff()?;
+        self.read_dirs(&proc_path)?;
         Ok(())
     }
 
     pub fn read_dirs(&mut self, proc_path: &Path) -> Result<(), io::Error> {
-        println!("{:?}", proc_path);
+        // println!("{:?}", proc_path);
         let mut dirs = vec![];
         let mut path;
         let digits_only = Regex::new("^[0-9]*$").unwrap();
@@ -237,10 +240,10 @@ impl ProcessInfo {
             .split_whitespace()
             .collect();
         let pid: i32 = contents_array[0].parse().unwrap();
-        let process_name: String = contents_array[1].replace("(", "").replace(")", "");
-        let state: String = contents_array[2].replace("(", "").replace(")", "");
-        let utime: f64 = contents_array[12].parse().unwrap();
-        let stime: f64 = contents_array[13].parse().unwrap();
+        let process_name: String = contents_array[2].replace("(", "").replace(")", "");
+        let state: String = contents_array[1].replace("(", "").replace(")", "");
+        let utime: f64 = contents_array[13].parse().unwrap();
+        let stime: f64 = contents_array[14].parse().unwrap();
         let total_time = utime + stime;
         let mem_data = Process::new(
             pid,
@@ -254,14 +257,10 @@ impl ProcessInfo {
     }
 
     pub fn update_cpu_diff(&mut self) -> Result<(), io::Error> {
-        let mut cpu_time_diff = 0.0;
         let current_cpu_time = self.get_cpu_info()?;
-        if self.cpu_time_diff == 0.0 {
-            self.cpu_time_diff = current_cpu_time;
-        } else {
-            cpu_time_diff = current_cpu_time - self.cpu_time_diff;
-        }
-        println!("{}", cpu_time_diff);
+        self.cpu_time_diff = current_cpu_time - self.current_cpu_time;
+        self.current_cpu_time = current_cpu_time;
+        println!("{}", self.cpu_time_diff);
         Ok(())
     }
 
@@ -270,7 +269,14 @@ impl ProcessInfo {
         let found_process = self.processes.iter()
             .find(|p| p.pid == process.pid);
         match found_process {
-            Some(p) => println!("{:?}", p),
+            Some(p) => {
+                let utime_percent = 100.0 * (process.utime - p.utime) / self.cpu_time_diff;
+                let stime_percent = 100.0 * (process.stime - p.stime) / self.cpu_time_diff;
+                let percent = 100.0 * (process.total_time - p.total_time) / self.cpu_time_diff;
+                println!("pid: {}, process name: {}, cpu: {}%",p.pid, p.process_name, percent);
+                // println!("{:?}", p);
+                // println!("{:?}", process);
+            },
             None => self.processes.push(process),
         };
         Ok(())
@@ -282,7 +288,7 @@ impl ProcessInfo {
         for val in cpu_vec.iter() {
             cpu_time += val;
         } 
-        Ok((cpu_time))
+        Ok(cpu_time)
     }
 
 }
