@@ -148,7 +148,7 @@ impl MemInfo {
 
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Process {
     pid: i32,
     process_name: String,
@@ -157,6 +157,7 @@ pub struct Process {
     stime: f64,
     total_time: f64,
     mem_percent: f64,
+    cpu_percent: f64,
 }
 
 impl Process {
@@ -164,6 +165,7 @@ impl Process {
     pub fn new(pid: i32, state: String,  process_name: String, utime: f64, stime: f64) -> Process {
         let total_time = utime + stime;
         let mem_percent = 0.0;
+        let cpu_percent = 0.0;
         Process {
             pid,
             process_name,
@@ -172,7 +174,12 @@ impl Process {
             stime,
             total_time,
             mem_percent,
+            cpu_percent,
         }
+    }
+
+    pub fn set_cpu_percent(&mut self, percent: f64) {
+        self.cpu_percent = percent;
     }
 }
 
@@ -265,7 +272,7 @@ impl ProcessInfo {
     }
 
 
-    pub fn add_to_processes(&mut self, process: Process) -> Result<(), io::Error> {
+    pub fn add_to_processes(&mut self, mut process: Process) -> Result<(), io::Error> {
         let found_process = self.processes.iter()
             .find(|p| p.pid == process.pid);
         match found_process {
@@ -273,9 +280,13 @@ impl ProcessInfo {
                 let utime_percent = 100.0 * (process.utime - p.utime) / self.cpu_time_diff;
                 let stime_percent = 100.0 * (process.stime - p.stime) / self.cpu_time_diff;
                 let percent = 100.0 * (process.total_time - p.total_time) / self.cpu_time_diff;
-                println!("pid: {}, process name: {}, cpu: {}%",p.pid, p.process_name, percent);
-                // println!("{:?}", p);
-                // println!("{:?}", process);
+                process.set_cpu_percent(percent);
+                let filtered_processes: Vec<Process> = self.processes.iter().cloned()
+                    .filter(| x| x.pid != process.pid)
+                    .collect();
+                self.processes = filtered_processes;
+                println!("{:?}", process);
+                self.processes.push(process);
             },
             None => self.processes.push(process),
         };
@@ -290,7 +301,6 @@ impl ProcessInfo {
         } 
         Ok(cpu_time)
     }
-
 }
 
 pub fn create_cpu_vector() -> Result<Vec<f64>, io::Error> {

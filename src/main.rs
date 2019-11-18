@@ -26,7 +26,7 @@ fn main() -> Result<(), failure::Error> {
     process_info.update(&proc_path);
 
 
-    //println!("{:?}", process_info.get_processes());
+    // println!("{:?}", process_info.get_processes());
     let events = Events::new();
     let mut cpu_usage = CPUUsage::new();
     let mut mem_info = MemInfo::new();
