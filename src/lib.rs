@@ -132,7 +132,7 @@ impl MemInfo {
             .collect();
         let mem_total = extract_kb_info(mem_total_line);
         let mem_free = extract_kb_info(mem_free_line);
-        let percentage_used = mem_free / mem_total * 100.0;
+        let percentage_used = 100.0 - (mem_free / mem_total * 100.0);
         self.current_mem = percentage_used;
         Ok(percentage_used)
 
@@ -241,7 +241,7 @@ impl ProcessInfo {
 
     pub fn sort_by_cpu(&mut self) {
         self.processes
-            .sort_by(|a, b| b.cpu_percent.partial_cmp(&a.cpu_percent).unwrap());
+            .sort_by(|a, b| b.mem_percent.partial_cmp(&a.mem_percent).unwrap());
     }
 
     pub fn update(&mut self, proc_path: &Path) -> Result<(), io::Error>{
@@ -252,39 +252,41 @@ impl ProcessInfo {
     }
 
     pub fn read_dirs(&mut self, proc_path: &Path) -> Result<(), io::Error> {
-        let mut dirs = vec![];
-        let mut path;
-        let digits_only = Regex::new("^[0-9]*$").unwrap();
-        for entry in fs::read_dir(proc_path)? {
-            let entry = entry?;
-            path = entry.path();
-            if path.is_dir() && digits_only.is_match(path.file_name().unwrap().to_str().unwrap()) {
-                dirs.push(path);
-            }
-            else if path.is_file() && path.file_name().unwrap() == "stat" 
-                && proc_path.to_str().unwrap() != "/proc/" {
-                let contents = match fs::read_to_string(&path) {
-                    Ok(f) => f,
-                    Err(e) => {
-                        e.to_string()
-                    },
-                };
-                self.get_cpu_data(&contents);
-            }
-            else if path.is_file() && path.file_name().unwrap() == "status" 
-                && proc_path.to_str().unwrap() != "/proc/" {
-                let contents = match fs::read_to_string(&path) {
-                    Ok(f) => f,
-                    Err(e) => {
-                        e.to_string()
-                    },
-                };
-                self.get_proccess_mem(&contents);
-            }
+        if proc_path.exists(){
+            let mut dirs = vec![];
+            let mut path;
+            let digits_only = Regex::new("^[0-9]*$").unwrap();
+            for entry in fs::read_dir(proc_path)? {
+                let entry = entry?;
+                path = entry.path();
+                if path.is_dir() && digits_only.is_match(path.file_name().unwrap().to_str().unwrap()) {
+                    dirs.push(path);
+                }
+                else if path.is_file() && path.file_name().unwrap() == "stat" 
+                    && proc_path.to_str().unwrap() != "/proc/" {
+                    let contents = match fs::read_to_string(&path) {
+                        Ok(f) => f,
+                        Err(e) => {
+                            e.to_string()
+                        },
+                    };
+                    self.get_cpu_data(&contents)?;
+                }
+                else if path.is_file() && path.file_name().unwrap() == "status" 
+                    && proc_path.to_str().unwrap() != "/proc/" {
+                    let contents = match fs::read_to_string(&path) {
+                        Ok(f) => f,
+                        Err(e) => {
+                            e.to_string()
+                        },
+                    };
+                    self.get_proccess_mem(&contents)?;
+                }
 
-        }
-        for dir in dirs.iter() {
-            self.read_dirs(&dir);
+            }
+            for dir in dirs.iter() {
+                self.read_dirs(&dir)?;
+            }
         }
         Ok(())
     }
@@ -310,8 +312,6 @@ impl ProcessInfo {
         let mem_percent = rss / self.total_mem * 100.0;
         let utime = 0.0;
         let stime = 0.0;
-        let total_time = 0.0;
-        let cpu_percent = 0.0;
         let mut new_process = Process::new(
             pid,
             process_name,
@@ -321,7 +321,7 @@ impl ProcessInfo {
             rss,
         );
         new_process.set_mem_percent(mem_percent);
-        self.add_mem_info_to_processes(new_process);
+        self.add_mem_info_to_processes(new_process)?;
         Ok(())
     }
 
@@ -355,7 +355,6 @@ impl ProcessInfo {
         let utime: f64 = contents_array[13].parse().unwrap();
         let stime: f64 = contents_array[14].parse().unwrap();
         let rss = 0.0;
-        let total_time = utime + stime;
         let mem_data = Process::new(
             pid,
             process_name,
@@ -364,7 +363,7 @@ impl ProcessInfo {
             stime,
             rss,
         );
-        self.add_cpu_info_to_processes(mem_data);
+        self.add_cpu_info_to_processes(mem_data)?;
         Ok(())
     }
 
@@ -381,8 +380,6 @@ impl ProcessInfo {
             .find(|p| p.pid == process.pid);
         match found_process {
             Some(p) => {
-                let utime_percent = 100.0 * (process.utime - p.utime) / self.cpu_time_diff;
-                let stime_percent = 100.0 * (process.stime - p.stime) / self.cpu_time_diff;
                 let percent = 100.0 * (process.total_time - p.total_time) / self.cpu_time_diff;
                 process.set_cpu_percent(percent);
                 process.set_rss(p.rss);
