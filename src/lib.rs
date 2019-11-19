@@ -150,14 +150,14 @@ impl MemInfo {
 
 #[derive(Debug, Clone)]
 pub struct Process {
-    pid: i32,
-    process_name: String,
-    state: String,
-    utime: f64,
-    stime: f64,
-    total_time: f64,
-    mem_percent: f64,
-    cpu_percent: f64,
+    pub pid: i32,
+    pub process_name: String,
+    pub state: String,
+    pub utime: f64,
+    pub stime: f64,
+    pub total_time: f64,
+    pub mem_percent: f64,
+    pub cpu_percent: f64,
 }
 
 impl Process {
@@ -267,7 +267,7 @@ impl ProcessInfo {
         let current_cpu_time = self.get_cpu_info()?;
         self.cpu_time_diff = current_cpu_time - self.current_cpu_time;
         self.current_cpu_time = current_cpu_time;
-        println!("{}", self.cpu_time_diff);
+        // println!("{}", self.cpu_time_diff);
         Ok(())
     }
 
@@ -285,7 +285,7 @@ impl ProcessInfo {
                     .filter(| x| x.pid != process.pid)
                     .collect();
                 self.processes = filtered_processes;
-                println!("{:?}", process);
+                // println!("{:?}", process);
                 self.processes.push(process);
             },
             None => self.processes.push(process),
