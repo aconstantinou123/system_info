@@ -9,6 +9,7 @@ pub struct CPUUsage {
     usage: Vec<(f64, f64)>,
     prev_time: f64,
     prev_usage: f64,
+    current_cpu: f64,
 }
 
 
@@ -18,11 +19,17 @@ impl CPUUsage {
         let usage = vec![];
         let prev_time = 0.0;
         let prev_usage = 0.0;
+        let current_cpu = 0.0;
         CPUUsage {
             usage,
             prev_time,
             prev_usage,
+            current_cpu,
         }
+    }
+
+    pub fn get_current_cpu(&self) -> f64 {
+        self.current_cpu
     }
 
     pub fn clear_usage(&mut self) {
@@ -78,6 +85,7 @@ impl CPUUsage {
             (current_time - self.prev_time);
         self.prev_usage = current_usage;
         self.prev_time = current_time;
+        self.current_cpu = current_cpu;
         current_cpu
     }
 }
@@ -85,14 +93,17 @@ impl CPUUsage {
 #[derive(Debug)]
 pub struct MemInfo {
     usage: Vec<(f64, f64)>,
+    current_mem: f64,
 }
 
 impl MemInfo {
 
     pub fn new() -> MemInfo {
         let usage = vec![];
+        let current_mem = 0.0;
         MemInfo {
-            usage
+            usage,
+            current_mem,
         }
     }
 
@@ -104,6 +115,10 @@ impl MemInfo {
 
     pub fn get_usage(&self) -> &Vec<(f64, f64)> {
         self.usage.as_ref()
+    }
+
+    pub fn get_current_mem(&self) -> f64 {
+        self.current_mem
     }
 
     pub fn extract_kb_info(&self, line: Vec<&str>) -> f64 {
@@ -128,6 +143,7 @@ impl MemInfo {
         let mem_total = self.extract_kb_info(mem_total_line);
         let mem_free = self.extract_kb_info(mem_free_line);
         let percentage_used = mem_free / mem_total * 100.0;
+        self.current_mem = percentage_used;
         Ok(percentage_used)
 
     }
