@@ -208,9 +208,15 @@ impl ProcessInfo {
         self.processes.as_ref()
     }
 
+    pub fn sort_by_cpu(&mut self) {
+        self.processes
+            .sort_by(|a, b| b.cpu_percent.partial_cmp(&a.cpu_percent).unwrap());
+    }
+
     pub fn update(&mut self, proc_path: &Path) -> Result<(), io::Error>{
         self.update_cpu_diff()?;
         self.read_dirs(&proc_path)?;
+        self.sort_by_cpu();
         Ok(())
     }
 
