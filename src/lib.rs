@@ -246,10 +246,32 @@ impl ProcessInfo {
 
     pub fn update(&mut self, proc_path: &Path) -> Result<(), io::Error>{
         self.update_cpu_diff()?;
+        self.remove_terminated_processes(&proc_path)?;
         self.read_dirs(&proc_path)?;
         self.sort_by_cpu();
         Ok(())
     }
+
+    pub fn remove_terminated_processes(&mut self, proc_path: &Path) -> Result<(), io::Error> {
+        let mut pids = vec![];
+        let mut path;
+        let mut dir_name;
+        let digits_only = Regex::new("^[0-9]*$").unwrap();
+        for entry in fs::read_dir(proc_path)? {
+            let entry = entry?;
+            path = entry.path();
+            dir_name = path.file_name().unwrap().to_str().unwrap();
+            if path.is_dir() && digits_only.is_match(dir_name) {
+                pids.push(String::from(dir_name));
+            }
+        }
+        let filtered_processes: Vec<Process> = self.processes.iter()
+            .cloned()
+            .filter(|p| pids.contains(&p.pid.to_string()))
+            .collect();
+        self.processes = filtered_processes;
+        Ok(())
+    } 
 
     pub fn read_dirs(&mut self, proc_path: &Path) -> Result<(), io::Error> {
         if proc_path.exists(){
